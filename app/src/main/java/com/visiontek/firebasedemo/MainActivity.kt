@@ -51,7 +51,7 @@ fun AuthScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = if (isLogin) "Welcome Back" else "Create Account",
+            text = if (isLogin) "Firebase Features" else "Create Account",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary

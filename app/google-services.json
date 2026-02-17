@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "463800792633",
+    "project_id": "fir-demo-a1994",
+    "storage_bucket": "fir-demo-a1994.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:463800792633:android:831b53f425fa135224ffe8",
+        "android_client_info": {
+          "package_name": "com.visiontek.firebasedemo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiCevy5fzJMOwDWUTeGcUwRifB0EZ0Pfg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

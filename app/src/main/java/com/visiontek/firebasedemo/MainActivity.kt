@@ -5,21 +5,38 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.visiontek.firebasedemo.ui.theme.FirebaseDemoTheme
+import com.visiontek.firebasedemo.viewmodel.AuthState
 import com.visiontek.firebasedemo.viewmodel.AuthViewModel
 
 class MainActivity : ComponentActivity() {
@@ -28,22 +45,24 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val viewModel: AuthViewModel = viewModel()
-            val loginStatus by viewModel.loginState.collectAsStateWithLifecycle()
+            val authState by viewModel.authState.collectAsStateWithLifecycle()
             FirebaseDemoTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                   if (loginStatus ==true){
-                       HomeScreen(
-                           onLogout = { viewModel.logout() },
-                           modifier = Modifier.padding(innerPadding)
-                       )
-                   }
-                    else  {
-                       AuthScreen(
-                           viewModel = viewModel,
-                           // You can pass the loginStatus to show an error if it's false
-                           isError = loginStatus == false,
-                           modifier = Modifier.padding(innerPadding)
-                       )
+                    when(authState) {
+                        is AuthState.Success -> {
+                            HomeScreen(
+                                onLogout = {viewModel.logout()},
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+                        else -> {
+                            AuthScreen(
+                                viewModel=viewModel,
+                                authState = authState,
+                                modifier=Modifier.padding(innerPadding)
+                            )
+
+                        }
                     }
 
                 }
@@ -52,16 +71,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
 @Composable
-fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, isError: Boolean) {
-    // State to toggle between Login and Sign Up
+fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, authState: AuthState) {
     var isLogin by remember { mutableStateOf(true) }
-
-    // Form input states
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    // Validation logic
+    val isInputValid =
+        email.isNotBlank() && password.length >= 6 && (isLogin || password == confirmPassword)
 
     Column(
         modifier = modifier
@@ -76,17 +95,9 @@ fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, isError:
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
-        if (isError) {
-            Text(
-                text = "Authentication Failed. Please check your credentials.",
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Email Field
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -97,7 +108,6 @@ fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, isError:
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Password Field
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -107,7 +117,6 @@ fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, isError:
             singleLine = true
         )
 
-        // Confirm Password Field (Only visible during Sign Up)
         if (!isLogin) {
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -120,28 +129,47 @@ fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, isError:
             )
         }
 
+        // --- MOVED ERROR MESSAGE HERE ---
+        // Placing it right above the button makes it more visible to the user's focus area
+        if (authState is AuthState.Error) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                // Use the actual message from the ViewModel if available
+                text = authState.message,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 14.sp,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Action Button
         Button(
             onClick = {
                 if (isLogin) {
-                    println("Clicked LOGIN")
-                    viewModel.login(email,password)
+                    viewModel.login(email, password)
                 } else {
-                    // TODO: Implement Sign Up Logic
-                    println("Clicked SignUp")
-                    viewModel.signUp(email,password)
+                    viewModel.signUp(email, password)
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            // Button is disabled if input is invalid OR currently loading
+            enabled = isInputValid && authState !is AuthState.Loading
         ) {
-            Text(if (isLogin) "Login" else "Sign Up")
+            if (authState is AuthState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(if (isLogin) "Login" else "Sign Up")
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Toggle Text
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
@@ -151,11 +179,17 @@ fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, isError:
                 text = if (isLogin) "Sign Up" else "Login",
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { isLogin = !isLogin }
+                modifier = Modifier.clickable {
+                    isLogin = !isLogin
+                    // Optional: Clear error state when toggling screens
+                    // viewModel.resetState()
+                }
             )
         }
     }
 }
+
+
 
 @Composable
 fun HomeScreen(onLogout: () -> Unit, modifier: Modifier = Modifier) {
@@ -176,6 +210,6 @@ fun HomeScreen(onLogout: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 fun AuthPreview() {
     FirebaseDemoTheme {
-        AuthScreen(viewModel = viewModel(), isError = false)
+        AuthScreen(viewModel = viewModel(), authState = AuthState.Idle )
     }
 }

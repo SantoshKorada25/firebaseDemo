@@ -1,31 +1,54 @@
 package com.visiontek.firebasedemo.viewmodel
 
+import androidx.activity.result.launch
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
+sealed class AuthState {
+    object Idle: AuthState()
+    object Loading : AuthState()
+    object Success : AuthState()
+    data class Error(val message: String) : AuthState()
+}
 
 class AuthViewModel : ViewModel() {
     private val auth:FirebaseAuth = FirebaseAuth.getInstance()
 
-    private val _loginState = MutableStateFlow<Boolean?>(null)
-    val loginState: StateFlow<Boolean?> = _loginState
 
-    fun login(email:String, password:String) {
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener {
-                _loginState.value = it.isSuccessful
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
+    val authState: StateFlow<AuthState> = _authState
+
+    fun login(email: String, password: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                auth.signInWithEmailAndPassword(email, password).await()
+                _authState.value = AuthState.Success
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "An error occurred")
             }
+        }
     }
     fun signUp(email:String, password:String){
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener {
-                _loginState.value = it.isSuccessful
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try{
+                auth.createUserWithEmailAndPassword(email, password).await()
+                _authState.value = AuthState.Success
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "An error occurred")
             }
-
+        }
     }
     fun logout(){
         auth.signOut()
+        _authState.value = AuthState.Idle
+        println("AuthViewModel ------------- LogOut")
     }
     fun isUserLoggedIn(): Boolean {
         return auth.currentUser != null

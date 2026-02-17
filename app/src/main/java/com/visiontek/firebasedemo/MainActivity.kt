@@ -17,24 +17,44 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.visiontek.firebasedemo.ui.theme.FirebaseDemoTheme
+import com.visiontek.firebasedemo.viewmodel.AuthViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val viewModel: AuthViewModel = viewModel()
+            val loginStatus by viewModel.loginState.collectAsStateWithLifecycle()
             FirebaseDemoTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AuthScreen(modifier = Modifier.padding(innerPadding))
+                   if (loginStatus ==true){
+                       HomeScreen(
+                           onLogout = { viewModel.logout() },
+                           modifier = Modifier.padding(innerPadding)
+                       )
+                   }
+                    else  {
+                       AuthScreen(
+                           viewModel = viewModel,
+                           // You can pass the loginStatus to show an error if it's false
+                           isError = loginStatus == false,
+                           modifier = Modifier.padding(innerPadding)
+                       )
+                    }
+
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun AuthScreen(modifier: Modifier = Modifier) {
+fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, isError: Boolean) {
     // State to toggle between Login and Sign Up
     var isLogin by remember { mutableStateOf(true) }
 
@@ -56,6 +76,13 @@ fun AuthScreen(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
+        if (isError) {
+            Text(
+                text = "Authentication Failed. Please check your credentials.",
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -99,9 +126,12 @@ fun AuthScreen(modifier: Modifier = Modifier) {
         Button(
             onClick = {
                 if (isLogin) {
-                    // TODO: Implement Login Logic
+                    println("Clicked LOGIN")
+                    viewModel.login(email,password)
                 } else {
                     // TODO: Implement Sign Up Logic
+                    println("Clicked SignUp")
+                    viewModel.signUp(email,password)
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -127,10 +157,25 @@ fun AuthScreen(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun HomeScreen(onLogout: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Welcome to Home Screen!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onLogout) {
+            Text("Logout")
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun AuthPreview() {
     FirebaseDemoTheme {
-        AuthScreen()
+        AuthScreen(viewModel = viewModel(), isError = false)
     }
 }

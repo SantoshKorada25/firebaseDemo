@@ -1,6 +1,4 @@
 package com.visiontek.firebasedemo.viewmodel
-
-import androidx.activity.result.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth

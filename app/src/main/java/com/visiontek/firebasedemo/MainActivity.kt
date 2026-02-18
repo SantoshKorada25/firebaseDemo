@@ -1,40 +1,32 @@
 package com.visiontek.firebasedemo
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.visiontek.firebasedemo.Screens.AuthScreen
+import com.visiontek.firebasedemo.Screens.HomeScreen
+import com.visiontek.firebasedemo.Screens.ProfileScreen
+import com.visiontek.firebasedemo.navigation.Screen
 import com.visiontek.firebasedemo.ui.theme.FirebaseDemoTheme
 import com.visiontek.firebasedemo.viewmodel.AuthState
 import com.visiontek.firebasedemo.viewmodel.AuthViewModel
@@ -50,10 +42,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when(authState) {
                         is AuthState.Success -> {
-                            HomeScreen(
-                                onLogout = {viewModel.logout()},
-                                modifier = Modifier.padding(innerPadding)
-                            )
+                            MainAppContent(viewModel, onLogout = { viewModel.logout() })
                         }
                         else -> {
                             AuthScreen(
@@ -71,140 +60,52 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
 @Composable
-fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, authState: AuthState) {
-    var isLogin by remember { mutableStateOf(true) }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+fun MainAppContent(viewModel: AuthViewModel, onLogout: () -> Unit) {
+    val navController = rememberNavController()
 
-    // Validation logic
-    val isInputValid =
-        email.isNotBlank() && password.length >= 6 && (isLogin || password == confirmPassword)
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = if (isLogin) "Firebase Features" else "Create Account",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email Address") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
-        )
-
-        if (!isLogin) {
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirm Password") },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true
-            )
-        }
-
-        // --- MOVED ERROR MESSAGE HERE ---
-        // Placing it right above the button makes it more visible to the user's focus area
-        if (authState is AuthState.Error) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                // Use the actual message from the ViewModel if available
-                text = authState.message,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 14.sp,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                if (isLogin) {
-                    viewModel.login(email, password)
-                } else {
-                    viewModel.signUp(email, password)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            // Button is disabled if input is invalid OR currently loading
-            enabled = isInputValid && authState !is AuthState.Loading
-        ) {
-            if (authState is AuthState.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
+                NavigationBarItem(
+                    selected = currentRoute == Screen.Home.route,
+                    onClick = { navController.navigate(Screen.Home.route) },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                    label = { Text("Home") }
                 )
-            } else {
-                Text(if (isLogin) "Login" else "Sign Up")
+                NavigationBarItem(
+                    selected = currentRoute == Screen.Profile.route,
+                    onClick = { navController.navigate(Screen.Profile.route) },
+                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                    label = { Text("Profile") }
+                )
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Home.route,
+            modifier = Modifier.padding(innerPadding)
         ) {
-            Text(text = if (isLogin) "Don't have an account? " else "Already have an account? ")
-            Text(
-                text = if (isLogin) "Sign Up" else "Login",
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable {
-                    isLogin = !isLogin
-                    // Optional: Clear error state when toggling screens
-                    // viewModel.resetState()
-                }
-            )
+            composable(Screen.Home.route) {
+                HomeScreen(onLogout = onLogout)
+            }
+            composable(Screen.Profile.route) {
+                ProfileScreen(onLogout = onLogout)
+            }
         }
     }
 }
 
 
 
-@Composable
-fun HomeScreen(onLogout: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Welcome to Home Screen!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onLogout) {
-            Text("Logout")
-        }
-    }
-}
+
+
+
 
 @Preview(showBackground = true)
 @Composable

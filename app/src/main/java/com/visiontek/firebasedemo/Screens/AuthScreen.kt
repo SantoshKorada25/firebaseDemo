@@ -1,5 +1,4 @@
 package com.visiontek.firebasedemo.Screens
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -140,10 +139,13 @@ fun AuthScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel, authStat
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable {
                     isLogin = !isLogin
-                    // Optional: Clear error state when toggling screens
-                    // viewModel.resetState()
+                    email=""
+                    password=""
+                    confirmPassword=""
+                    viewModel.resetState()
                 }
             )
         }
     }
 }
+

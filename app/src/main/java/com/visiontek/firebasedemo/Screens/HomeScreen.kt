@@ -1,18 +1,17 @@
 package com.visiontek.firebasedemo.Screens
-
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
@@ -32,33 +31,28 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.visiontek.firebasedemo.ui.theme.FirebaseDemoTheme
-import com.visiontek.firebasedemo.viewmodel.Note
 import com.visiontek.firebasedemo.viewmodel.NoteViewModel
 
 @Composable
 fun HomeScreen(onLogout: () -> Unit, modifier: Modifier = Modifier) {
     var noteText by remember { mutableStateOf("") }
-    var notesList by remember { mutableStateOf(listOf<Note>()) }
     val noteViewModel : NoteViewModel = viewModel()
-    LaunchedEffect(Unit) {
-        noteViewModel.getNotes {
-            notes -> notesList = notes
-        }
-    }
+    val notesList by noteViewModel.notes.collectAsStateWithLifecycle()
+
     LazyColumn( modifier = Modifier
         .fillMaxSize()
         .background(Color.White),
@@ -79,24 +73,66 @@ fun HomeScreen(onLogout: () -> Unit, modifier: Modifier = Modifier) {
             }
         }
         item {
+            FeaturedQuoteCard()
+        }
+        item {
             NoteInputSection(
                 value = noteText,
                 onValueChange = { noteText = it },
                 onAddClick = {
                     if (noteText.isNotBlank()) {
-                        //notesList.add() // Add to top
+                      noteViewModel.addNote(noteText) // Add to top
                         noteText = ""
                     }
                 }
             )
         }
-        item {
-            FeaturedQuoteCard()
+        // Inside LazyColumn
+        if (notesList.isEmpty()) {
+            item {
+                EmptyNotesView() // Choose one of the designs above
+            }
+        } else {
+            items(notesList) { note ->
+                NoteCard(
+                    content = note.content,
+                    onDelete = { noteViewModel.deleteNote(note.id) }
+                )
+            }
         }
+
 
     }
 }
 
+@Composable
+fun EmptyNotesView() {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        repeat(3) { index ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (index == 0) 0.5f else if (index == 1) 0.3f else 0.1f),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7F7)),
+                border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+            ) {
+                Box(modifier = Modifier
+                    .padding(20.dp)
+                    .height(20.dp)
+                    .fillMaxWidth(0.6f)
+                    .background(Color.LightGray, RoundedCornerShape(4.dp)))
+            }
+        }
+        Text(
+            text = "No notes yet. Type above to start.",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            color = Color.Gray,
+            fontSize = 14.sp
+        )
+    }
+}
 @Composable
 fun NoteInputSection(value: String, onValueChange: (String) -> Unit, onAddClick: () -> Unit) {
     Row(
@@ -126,7 +162,7 @@ fun NoteInputSection(value: String, onValueChange: (String) -> Unit, onAddClick:
 }
 
 @Composable
-fun NoteCard(content: String) {
+fun NoteCard(content: String, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -143,7 +179,7 @@ fun NoteCard(content: String) {
                 style = TextStyle(fontSize = 16.sp, color = Color.DarkGray)
             )
             // Optional: Delete Icon
-            IconButton(onClick = { /* Handle delete */ }) {
+            IconButton(onClick = {onDelete() }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
             }
         }

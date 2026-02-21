@@ -81,16 +81,15 @@ fun HomeScreen(onLogout: () -> Unit, modifier: Modifier = Modifier) {
                 onValueChange = { noteText = it },
                 onAddClick = {
                     if (noteText.isNotBlank()) {
-                      noteViewModel.addNote(noteText) // Add to top
+                      noteViewModel.addNote(noteText)
                         noteText = ""
                     }
                 }
             )
         }
-        // Inside LazyColumn
         if (notesList.isEmpty()) {
             item {
-                EmptyNotesView() // Choose one of the designs above
+                EmptyNotesView()
             }
         } else {
             items(notesList) { note ->
@@ -167,7 +166,7 @@ fun NoteCard(content: String, onDelete: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7F7)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+        border = BorderStroke(1.dp, Color(0xFFE0E0E0))
     ) {
         Row(
             modifier = Modifier.padding(20.dp),
@@ -178,7 +177,6 @@ fun NoteCard(content: String, onDelete: () -> Unit) {
                 modifier = Modifier.weight(1f),
                 style = TextStyle(fontSize = 16.sp, color = Color.DarkGray)
             )
-            // Optional: Delete Icon
             IconButton(onClick = {onDelete() }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
             }

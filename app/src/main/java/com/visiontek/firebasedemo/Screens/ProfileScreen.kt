@@ -1,4 +1,7 @@
 package com.visiontek.firebasedemo.Screens
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,12 +44,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.key.Key.Companion.U
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -56,16 +64,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
 import com.visiontek.firebasedemo.R
 
 
 data class ProfileOption(val icon: ImageVector,val title:String)
-/*
-@Composable
-fun ProfileScreen() {
-        //ProfileListItem(ProfileOption(Icons.Default.AccountCircle, "Account"))
-}
-*/
 
 @Composable
 fun Profile2Screen(onLogout: () -> Unit) {
@@ -149,6 +153,21 @@ fun Profile2Screen(onLogout: () -> Unit) {
 
 @Composable
 fun ProfileScreen(onLogout: () -> Unit) {
+    val auth = FirebaseAuth.getInstance()
+    val currentUser = auth.currentUser
+    // States for UI
+    var userName by remember { mutableStateOf(currentUser?.displayName ?: "Set Name") }
+    val userEmail = currentUser?.email ?: "No Email"
+    var profileImageUri by remember { mutableStateOf<Uri?>(currentUser?.photoUrl) }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            profileImageUri = it
+            // Logic to upload to Firebase Storage would be called here
+            // uploadToFirebaseStorage(it)
+        }
+    }
     val options = listOf(
         ProfileOption(Icons.Default.Person, "Edit Profile"),
         ProfileOption(Icons.Default.Lock, "Change Password"),
@@ -209,14 +228,25 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         color = Color.Transparent,
                         border = BorderStroke(2.dp, Color(0xFFFFD500)) // Yellow Accent Border
                     ) {
-                        Image(
-                            painter = painterResource(R.drawable.user),
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier
-                                .padding(6.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
+                        if (profileImageUri != null) {
+                            AsyncImage(
+                                model = profileImageUri,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier
+                                    .padding(6.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.user),
+                                contentDescription = "Default Profile",
+                                modifier = Modifier
+                                    .padding(6.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
 
                     // The Edit Symbol - Floating Action Style
@@ -225,7 +255,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             .size(34.dp)
                             .background(Color(0xFF1A2130), CircleShape) // Navy Background
                             .clip(CircleShape)
-                            .clickable { /* Edit Image */ }
+                            .clickable { launcher.launch("image/*") }
                             .padding(8.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -239,13 +269,8 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Ramesh",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 24.sp,
-                    color = Color(0xFF1A2130)
-                )
-                Text(text = "s@gmail.com", color = Color.Gray, fontSize = 14.sp)
+                Text(text = userName, fontWeight = FontWeight.Black, fontSize = 24.sp, color = Color(0xFF1A2130))
+                Text(text = userEmail, color = Color.Gray, fontSize = 14.sp)
             }
             Spacer(modifier = Modifier.height(32.dp))
         }

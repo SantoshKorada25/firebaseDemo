@@ -1,15 +1,14 @@
-package com.visiontek.firebasedemo.viewmodel
-
 import android.net.Uri
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.auth.userProfileChangeRequest
-
+import com.google.firebase.storage.FirebaseStorage
 class ProfileViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
-    private val storage =
+    private val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
 
     // UI States
     var isUploading by mutableStateOf(false)
@@ -35,7 +34,7 @@ class ProfileViewModel : ViewModel() {
                 storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
                     // 2. Update the Firebase Auth Profile with this URL
                     val profileUpdates = userProfileChangeRequest {
-                        UserProfileChangeRequest.Builder.setPhotoUri = downloadUrl
+                        photoUri = downloadUrl
                     }
 
                     auth.currentUser?.updateProfile(profileUpdates)

@@ -1,4 +1,5 @@
 package com.visiontek.firebasedemo.Screens
+import ProfileViewModel
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +39,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.visiontek.firebasedemo.R
@@ -152,7 +155,7 @@ fun Profile2Screen(onLogout: () -> Unit) {
 }
 
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
+fun ProfileScreen(onLogout: () -> Unit , profileViewModel: ProfileViewModel = viewModel()) {
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
     // States for UI
@@ -163,9 +166,9 @@ fun ProfileScreen(onLogout: () -> Unit) {
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            profileImageUri = it
-            // Logic to upload to Firebase Storage would be called here
-            // uploadToFirebaseStorage(it)
+           profileViewModel.uploadProfilePicture(it) { downloadUrl ->
+               profileImageUri = downloadUrl
+           }
         }
     }
     val options = listOf(
@@ -259,13 +262,25 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             .padding(8.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = Color(0xFFFFD500), // Yellow Pencil
-                            modifier = Modifier.size(16.dp)
-                        )
+                        if(profileViewModel.isUploading){
+                            CircularProgressIndicator(
+                                color = Color(0xFFFFD500),
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        else {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                tint = Color(0xFFFFD500), // Yellow Pencil
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
+                }
+                profileViewModel.uploadError?.let { error ->
+                    Text(text = error, color = Color.Red, fontSize = 12.sp)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
